@@ -1,0 +1,12 @@
+[package]
+name = "dot"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+
+[dependencies]
+clap = { version="4.4.2", features=["derive"] }
+knus = "3.3.1"
+miette = { version="7.2.0", features=["fancy"] }
+thiserror = "2.0.18"
+owo-colors = "4.2.3"
