@@ -31,11 +31,11 @@ pub enum Command {
 pub type Vars = Arc<Mutex<Vec<Var>>>;
 
 pub trait FunctionalCommand {
-    fn run(&self, vars: Vars) -> Result<()>;
+    fn exec(&self, vars: Vars) -> Result<()>;
 }
 
 impl FunctionalCommand for Command {
-    fn run(&self, vars: Vars) -> Result<()> {
+    fn exec(&self, vars: Vars) -> Result<()> {
         // match self {
         //     Command::Env(it) => it.run(vars),
         //     Command::Copy(it) => it.run(vars),

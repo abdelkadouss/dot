@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{commands::Command, flow_control::if_condation::If};
 
 mod if_condation;
@@ -7,12 +9,12 @@ pub enum ControlFlowCommand {
     If(If),
 }
 
-trait FlowRouter {
-    fn get_flow(&self) -> Command;
+pub trait FlowRouter {
+    fn get_flow(&self) -> Vec<Arc<Command>>;
 }
 
 impl FlowRouter for ControlFlowCommand {
-    fn get_flow(&self) -> Command {
+    fn get_flow(&self) -> Vec<Arc<Command>> {
         match self {
             ControlFlowCommand::If(it) => it.get_flow(),
         }

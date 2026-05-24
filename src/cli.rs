@@ -1,22 +1,18 @@
-use std::{fs::read_to_string, sync::Arc, thread};
+use std::{sync::Arc, thread};
 
 use clap::{ColorChoice, Parser, Subcommand};
-use miette::{Diagnostic, IntoDiagnostic, Result, SourceSpan};
+use miette::{Diagnostic, Result, SourceSpan};
 use thiserror::Error;
 
 use crate::{
-    commands::{Command, FunctionalCommand, Vars},
+    commands::{FunctionalCommand, Vars},
     config::Config,
-    parser::{
-        ControlFlowBlock, Parser as DotParser, ThreadIndicator,
-        ThreadedAndFlowControledCommandBlock,
-    },
+    parser::{OrgnizedBlock, Parser as DotParser, ThreadIndicator},
     var::Var,
 };
 
 const DEFAULT_SOURCE_DECLARATION_FILE_NAME: &str = "Dotfile.kdl";
 const DEFAULT_SCRIPTS_DIR: &str = "scripts";
-const TMPS_BASE_DIR: &str = "/tmp/dot";
 
 #[derive(Debug, Error, Diagnostic)]
 pub enum ExecutionError {
@@ -63,33 +59,30 @@ impl Cli {
                 .join(script_name),
         };
 
-        let parsed_script = knus::parse::<Vec<Command>>(
-            to_run_script.clone().to_str().unwrap(),
-            read_to_string(to_run_script).into_diagnostic()?.as_str(),
-        )?;
+        let parsed_script = DotParser::parse_and_order_commands(&to_run_script)?;
 
         run_kdl_commands(parsed_script)
     }
 }
 
-fn run_kdl_commands(commands: Vec<Command>) -> Result<()> {
+fn run_kdl_commands(commands: Vec<OrgnizedBlock>) -> Result<()> {
     // make the vars shared state
     let vars = Vars::new(Vec::<Var>::new().into());
 
     // make the threads handler
     let mut threads_stuck = Vec::<thread::JoinHandle<Result<()>>>::new();
 
-    for ordered_commands_block in DotParser::parse_and_order_commands::<ControlFlowBlock>(commands)
-    {
+    for ordered_commands_block in commands {
         // get the block meta data
-        let block_thread_count = ordered_commands_block.get_thread_counter();
-        let block_source_code = ordered_commands_block.get_block_source_code();
-        let block_gate_span = ordered_commands_block.get_block_gate_span();
+        let block_thread_count = ordered_commands_block.thread_indicator;
+        let block_source_code = ordered_commands_block.source_code;
+        let block_gate_span = ordered_commands_block.gate_span;
 
         let vars_clone = Arc::clone(&vars);
+        // TODO: u have to handle the return values of the threads insha'Allah
         let execute_cluster = move || -> Result<()> {
-            for command in ordered_commands_block.get_commands_block() {
-                command.run(Arc::clone(&vars_clone))?
+            for command in ordered_commands_block.commands {
+                command.exec(Arc::clone(&vars_clone))?
             }
 
             Ok(())
@@ -97,10 +90,10 @@ fn run_kdl_commands(commands: Vec<Command>) -> Result<()> {
 
         match block_thread_count {
             ThreadIndicator::Main => {
-                execute_cluster();
+                execute_cluster()?;
             }
             ThreadIndicator::Push => {
-                threads_stuck.push(thread::spawn(move || execute_cluster()));
+                threads_stuck.push(thread::spawn(execute_cluster));
             }
             ThreadIndicator::Join => {
                 if let Some(handle) = threads_stuck.pop() {
@@ -112,7 +105,7 @@ fn run_kdl_commands(commands: Vec<Command>) -> Result<()> {
                     })?;
                 }
 
-                execute_cluster();
+                execute_cluster()?;
             }
         }
     }

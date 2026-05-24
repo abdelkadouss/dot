@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{commands::Command, flow_control::FlowRouter};
 
 #[derive(knus::Decode, Debug)]
@@ -11,7 +13,7 @@ pub struct If {
 }
 
 impl FlowRouter for If {
-    fn get_flow(&self) -> Command {
+    fn get_flow(&self) -> Vec<Arc<Command>> {
         todo!()
     }
 }

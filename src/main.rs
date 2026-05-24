@@ -9,7 +9,7 @@ mod var;
 
 use cli::Cli;
 use config::Config;
-use miette::{Diagnostic, IntoDiagnostic, Result};
+use miette::{Diagnostic, Result};
 use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
