@@ -1,11 +1,12 @@
-use std::fs::read_to_string;
+use std::{cmp::Ordering, fs::read_to_string, sync::Arc, thread};
 
 use clap::{ColorChoice, Parser, Subcommand};
 use miette::{IntoDiagnostic, Result};
 
 use crate::{
-    commands::{Command, FunctionalCommand},
+    commands::{Command, FunctionalCommand, Vars},
     config::Config,
+    var::Var,
 };
 
 const DEFAULT_SOURCE_DECLARATION_FILE_NAME: &str = "Dotfile.kdl";
@@ -33,6 +34,25 @@ pub(crate) enum Commands {
     },
 }
 
+pub type ThreadCounter = usize;
+
+pub trait ThreadedAndFlowControledCommandBlock {
+    fn get_thread_counter(&self) -> ThreadCounter;
+    fn get_commands_block(&self) -> Vec<&Command>;
+}
+
+#[derive(Debug)]
+pub enum ControlFlowBlock {}
+
+impl ThreadedAndFlowControledCommandBlock for ControlFlowBlock {
+    fn get_thread_counter(&self) -> ThreadCounter {
+        todo!()
+    }
+    fn get_commands_block(&self) -> Vec<&Command> {
+        todo!()
+    }
+}
+
 impl Cli {
     pub fn route(config: Config) -> Result<()> {
         let cli = Cli::parse();
@@ -55,12 +75,44 @@ impl Cli {
 }
 
 fn run_kdl_commands(commands: Vec<Command>) -> Result<()> {
-    // parse the script (via kdl lib)
-    // loop over the commands
-    // execute the commands
-    for command in commands {
-        command.run()?
+    // make the vars shared state
+    let vars = Vars::new(Vec::<Var>::new().into());
+
+    // make the threads handler
+    let mut threads_stuck = Vec::<thread::JoinHandle<Result<()>>>::new();
+
+    for ordered_commands_block in parse_and_order_commands::<ControlFlowBlock>(commands) {
+        let block_thread_count = ordered_commands_block.get_thread_counter();
+
+        let vars_clone = Arc::clone(&vars);
+        let execute_cluster = move || -> Result<()> {
+            for command in ordered_commands_block.get_commands_block() {
+                command.run(Arc::clone(&vars_clone))?
+            }
+
+            Ok(())
+        };
+
+        match block_thread_count.cmp(&threads_stuck.len()) {
+            Ordering::Equal => {
+                execute_cluster();
+            }
+            Ordering::Greater => {
+                let new_thread = thread::spawn(move || execute_cluster());
+
+                threads_stuck.push(new_thread); // here is the problem
+            }
+            Ordering::Less => {
+                todo!()
+            }
+        }
     }
 
     Ok(())
+}
+
+fn parse_and_order_commands<T: ThreadedAndFlowControledCommandBlock>(
+    commands: Vec<Command>,
+) -> Vec<T> {
+    todo!()
 }

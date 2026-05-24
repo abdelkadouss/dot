@@ -5,7 +5,7 @@ mod log;
 mod rm;
 mod run;
 
-use std::path::Path;
+use std::sync::{Arc, Mutex};
 
 use copy::Copy;
 use env::Env;
@@ -15,11 +15,7 @@ use miette::Result;
 use rm::Rm;
 use run::Run;
 
-#[derive(Debug)]
-pub struct Var {
-    pub name: String,
-    pub value: VarType,
-}
+use crate::var::Var;
 
 #[derive(knus::Decode, Debug)]
 pub enum Command {
@@ -31,19 +27,21 @@ pub enum Command {
     Rm(Rm),
 }
 
+pub type Vars = Arc<Mutex<Vec<Var>>>;
+
 pub trait FunctionalCommand {
-    fn run(&self) -> Result<()>;
+    fn run(&self, vars: Vars) -> Result<()>;
 }
 
 impl FunctionalCommand for Command {
-    fn run(&self) -> Result<()> {
+    fn run(&self, vars: Vars) -> Result<()> {
         match self {
-            Command::Env(it) => it.run(),
-            Command::Copy(it) => it.run(),
-            Command::Log(it) => it.run(),
-            Command::Run(it) => it.run(),
-            Command::Input(it) => it.run(),
-            Command::Rm(it) => it.run(),
+            Command::Env(it) => it.run(vars),
+            Command::Copy(it) => it.run(vars),
+            Command::Log(it) => it.run(vars),
+            Command::Run(it) => it.run(vars),
+            Command::Input(it) => it.run(vars),
+            Command::Rm(it) => it.run(vars),
         }
     }
 }

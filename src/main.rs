@@ -1,7 +1,9 @@
 mod cli;
 mod commands;
 mod config;
+mod flow_control;
 mod utils;
+mod var;
 
 use cli::Cli;
 use config::Config;
