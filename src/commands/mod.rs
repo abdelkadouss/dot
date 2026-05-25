@@ -36,20 +36,30 @@ pub enum Command {
 }
 
 pub trait FunctionalCommand {
-    fn exec(&self, vars: Vars, execution_stuck: Rc<Mutex<ExecutionStuck>>) -> Result<()>;
+    fn exec(
+        &self,
+        vars: Vars,
+        execution_stuck: Rc<Mutex<ExecutionStuck>>,
+        command_span: knus::span::LineSpan,
+    ) -> Result<()>;
 }
 
 impl FunctionalCommand for Command {
-    fn exec(&self, vars: Vars, execution_stuck: Rc<Mutex<ExecutionStuck>>) -> Result<()> {
+    fn exec(
+        &self,
+        vars: Vars,
+        execution_stuck: Rc<Mutex<ExecutionStuck>>,
+        command_span: knus::span::LineSpan,
+    ) -> Result<()> {
         match self {
             //     Command::Env(it) => it.run(vars),
-            Command::Copy(it) => it.exec(vars, execution_stuck),
-            Command::Log(it) => it.exec(vars, execution_stuck),
+            Command::Copy(it) => it.exec(vars, execution_stuck, command_span),
+            Command::Log(it) => it.exec(vars, execution_stuck, command_span),
             //     Command::Run(it) => it.run(vars),
             //     Command::Input(it) => it.run(vars),
             //     Command::Rm(it) => it.run(vars),
             //     Command::If(it) => it.run(vars),
-            Command::Fork(it) => it.exec(vars, execution_stuck),
+            Command::Fork(it) => it.exec(vars, execution_stuck, command_span),
         }
     }
 }

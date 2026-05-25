@@ -19,15 +19,31 @@ impl Parser {
     }
 
     pub fn parse(&self) -> Result<ExecutionStuck> {
-        let mut kdl_commands_stack =
-            knus::parse::<Vec<Command>>(&self.source_path.to_string_lossy(), &self.source_code)
-                .map_err(miette::Report::new)?;
+        let ast = knus::parse_ast::<knus::span::LineSpan>(
+            &self.source_path.to_string_lossy(),
+            &self.source_code,
+        )
+        .map_err(miette::Report::new)?;
+
+        let mut commands = ast
+            .nodes
+            .iter()
+            .map(|node| {
+                let span = node.span().clone();
+                let command = knus::decode::node::<Command, knus::span::LineSpan>(node)
+                    .map_err(|errs| miette::Report::new(errs.into_iter().next().unwrap()))?;
+
+                Ok((command, span))
+            })
+            .collect::<Result<Vec<_>>>()?;
 
         // a stack is a LIFO
-        kdl_commands_stack.reverse();
+        commands.reverse();
 
         Ok(ExecutionStuck {
-            commands: kdl_commands_stack,
+            commands,
+            source_code: self.source_code.clone(),
+            source_path: self.source_path.clone(),
         })
     }
 }

@@ -37,7 +37,12 @@ pub struct Log {
 }
 
 impl FunctionalCommand for Log {
-    fn exec(&self, vars: Vars, _execution_stuck: Rc<Mutex<ExecutionStuck>>) -> miette::Result<()> {
+    fn exec(
+        &self,
+        vars: Vars,
+        _execution_stuck: Rc<Mutex<ExecutionStuck>>,
+        _command_span: knus::span::LineSpan,
+    ) -> miette::Result<()> {
         let (signs, prefix, color) = match self.level {
             LogLevel::Error => ('🚨', "ERROR", AnsiColors::Red),
             LogLevel::Wron => ('🚧', "WRON", AnsiColors::Yellow),

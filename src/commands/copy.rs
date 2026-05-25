@@ -1,7 +1,7 @@
 #![allow(dead_code)]
-use std::{fs, rc::Rc, sync::Mutex};
+use std::{fs, path::Path, rc::Rc, sync::Mutex};
 
-use miette::IntoDiagnostic;
+use miette::{IntoDiagnostic, Result};
 
 use crate::{commands::FunctionalCommand, execute::ExecutionStuck, utils, var::Vars};
 
@@ -16,7 +16,12 @@ pub struct Copy {
 }
 
 impl FunctionalCommand for Copy {
-    fn exec(&self, _vars: Vars, _execution_stuck: Rc<Mutex<ExecutionStuck>>) -> miette::Result<()> {
+    fn exec(
+        &self,
+        _vars: Vars,
+        _execution_stuck: Rc<Mutex<ExecutionStuck>>,
+        _command_span: knus::span::LineSpan,
+    ) -> miette::Result<()> {
         for path in &self.from {
             let from = utils::path::expand(path)?;
             let to = utils::path::expand(&self.to)?;
@@ -39,12 +44,46 @@ impl FunctionalCommand for Copy {
 
             match to.is_dir() {
                 true => fs::create_dir_all(&to).into_diagnostic()?,
-                false => fs::create_dir_all(to.parent().unwrap()).into_diagnostic()?,
+                false => {
+                    if let Some(parent) = to.parent() {
+                        fs::create_dir_all(parent).into_diagnostic()?;
+                    }
+                }
             }
 
-            fs::copy(from, to).map(|_| ()).into_diagnostic()?
+            if from.is_dir() {
+                copy_dir_recursively(&from, &to)?;
+            } else if from.is_file() {
+                fs::copy(from, to).into_diagnostic()?;
+            } else {
+                return Err(miette::miette!(
+                    "the source path is neither a regular file nor a symlink to a regular file"
+                ));
+            };
         }
 
         Ok(())
     }
+}
+
+fn copy_dir_recursively(source_path: &Path, dest_path: &Path) -> Result<()> {
+    if !source_path.exists() || !source_path.is_dir() {
+        return Err(miette::miette!(
+            "can't copy source recursively because it not an existing directory"
+        ));
+    }
+
+    fs::create_dir_all(dest_path).into_diagnostic()?;
+    for entry in fs::read_dir(source_path).into_diagnostic()? {
+        let entry = entry.into_diagnostic()?;
+        let dest_entry = dest_path.join(entry.file_name());
+        // Recursively copy or move
+        if entry.path().is_dir() {
+            copy_dir_recursively(&entry.path(), dest_entry.as_path())?;
+        } else {
+            fs::copy(entry.path(), &dest_entry).into_diagnostic()?;
+        }
+    }
+
+    Ok(())
 }

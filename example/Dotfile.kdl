@@ -1,4 +1,4 @@
-copy "/app/example/Dotfile.kdl" to="/tmp"
+copy "/app/example" to="/tmp"
 
 fork {
   (info)log "forked"
