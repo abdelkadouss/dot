@@ -1,8 +1,8 @@
 mod copy;
-// mod env;
+mod env;
 // mod input;
 mod log;
-// mod rm;
+mod rm;
 // mod run;
 // mod if;
 mod fork;
@@ -12,11 +12,11 @@ use std::{rc::Rc, sync::Mutex};
 use miette::Result;
 
 use copy::Copy;
-// use env::Env;
+use env::Env;
 // use input::Input;
 use log::Log;
 // use miette::Result;
-// use rm::Rm;
+use rm::Rm;
 // use run::Run;
 // use if::If;
 use fork::Fork;
@@ -27,10 +27,10 @@ use crate::{execute::ExecutionStuck, var::Vars};
 pub enum Command {
     Copy(Copy),
     Log(Log),
-    // Env(Env),
+    Env(Env),
     // Run(Run),
     // Input(Input),
-    // Rm(Rm),
+    Rm(Rm),
     // If(If),
     Fork(Fork),
 }
@@ -52,12 +52,12 @@ impl FunctionalCommand for Command {
         command_span: knus::span::LineSpan,
     ) -> Result<()> {
         match self {
-            //     Command::Env(it) => it.run(vars),
+            Command::Env(it) => it.exec(vars, execution_stuck, command_span),
             Command::Copy(it) => it.exec(vars, execution_stuck, command_span),
             Command::Log(it) => it.exec(vars, execution_stuck, command_span),
             //     Command::Run(it) => it.run(vars),
             //     Command::Input(it) => it.run(vars),
-            //     Command::Rm(it) => it.run(vars),
+            Command::Rm(it) => it.exec(vars, execution_stuck, command_span),
             //     Command::If(it) => it.run(vars),
             Command::Fork(it) => it.exec(vars, execution_stuck, command_span),
         }

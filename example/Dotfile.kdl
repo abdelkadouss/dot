@@ -1,9 +1,17 @@
-copy "/app/example" to="/tmp"
+// copy "/app/example" to="/tmp"
 
 fork {
+  // BUG: the file is not removed when in fork, maybe because all the threads are killed when the main thread exit
+  // rm "/tmp/example"
+
   (info)log "forked"
   (error)log "forked"
+
 }
+
+(load)env var="PATH"
+(info)log "PATH is ?PATH"
+
 
 (info)log "hello world"
 (worn)log "this is a cool worn"

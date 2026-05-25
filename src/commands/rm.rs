@@ -1,41 +1,33 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, rc::Rc, sync::Mutex};
 
-use miette::{Diagnostic, IntoDiagnostic};
-use thiserror::Error;
+use miette::IntoDiagnostic;
 
-use crate::commands::{FunctionalCommand, Var};
+use crate::{commands::FunctionalCommand, execute, utils, var::Vars};
 
-#[derive(Error, Debug, Diagnostic)]
-pub enum RmError {
-    #[error("u trying to remove file that not exists {file_path}")]
-    FileNotExist { file_path: PathBuf },
-}
-
-#[derive(knus::Decode, Debug)]
+#[derive(knus::Decode, Debug, Clone)]
 pub struct Rm {
     #[knus(arguments)]
-    files: Vec<String>,
+    paths: Vec<String>,
 }
 
 impl FunctionalCommand for Rm {
-    fn run(&self) -> miette::Result<()> {
-        for file in &self.files {
-            let file_path = target.join(file);
+    fn exec(
+        &self,
+        vars: Vars, // TODO: format the paths using those
+        _execution_stuck: Rc<Mutex<execute::ExecutionStuck>>,
+        _command_span: knus::span::LineSpan,
+    ) -> miette::Result<()> {
+        for path in &self.paths {
+            let file = utils::path::expand(path)?;
 
-            if !file_path.exists() {
-                Err(RmError::FileNotExist {
-                    file_path: file_path.clone(),
-                })
-                .into_diagnostic()?
+            if !file.exists() {
+                Err(miette::miette!("file not found: {}", file.display()))?;
             }
 
-            if file_path.is_dir() {
-                fs::remove_dir_all(file_path).into_diagnostic()?
+            if file.is_dir() {
+                fs::remove_dir_all(file).into_diagnostic()?
             } else {
-                fs::remove_file(file_path).into_diagnostic()?
+                fs::remove_file(file).into_diagnostic()?
             }
         }
 

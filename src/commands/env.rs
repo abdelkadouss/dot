@@ -1,35 +1,22 @@
-use std::{env, fs, path::PathBuf};
+use std::{env, rc::Rc, sync::Mutex};
 
-use miette::{Diagnostic, IntoDiagnostic};
-use thiserror::Error;
+use miette::IntoDiagnostic;
 
 use crate::{
-    commands::{FunctionalCommand, Var},
-    utils,
+    commands::FunctionalCommand,
+    execute::ExecutionStuck,
+    var::{Var, VarValue, Vars},
 };
 
-const ENV_VARS_TO_IGNORE: [&str; 4] = ["SHELL", "PWD", "TERM", "PATH"]; // NOTE: u may wanna to
-// remove path
+const ENV_VARS_TO_IGNORE: [&str; 4] = ["SHELL", "PWD", "TERM", "PATH"];
 
-#[derive(Error, Debug, Diagnostic)]
-pub enum EnvError {
-    #[error("fiald to set env var: {var}")]
-    #[diagnostic(code(commands::run_time_error))]
-    FialdToSetEnv { var: String },
-
-    #[error("u jsut pass a path that not exists as file to load env from: {file}")]
-    #[diagnostic(code(commands::worng_usege))]
-    EnvFileNotExist { file: PathBuf },
-
-    #[error("u jsut tring to remove unexist env var: {var}")]
-    #[diagnostic(code(commands::worng_usege))]
-    EnvVarNotExists { var: String },
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum EnvActionType {
-    LoadFromFile,
+    /// load an env var from the env and write it in a var
+    Load,
+    /// inject an var value into env
     Inject,
+    /// drop an var from env - if var property is empty, drop all env vars
     Drop,
 }
 
@@ -37,71 +24,63 @@ impl std::str::FromStr for EnvActionType {
     type Err = Box<dyn std::error::Error + Send + Sync + 'static>;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "load_from_file" => Ok(EnvActionType::LoadFromFile),
+            "load" => Ok(EnvActionType::Load),
             "inject" => Ok(EnvActionType::Inject),
             "drop" => Ok(EnvActionType::Drop),
-            _ => Err("env type name must be `load` or `drop`")?,
+            _ => Err("env type name must be `load`, `inject` or `drop`")?,
         }
     }
 }
 
-#[derive(knus::Decode, Debug)]
+#[derive(knus::Decode, Debug, Clone)]
 pub struct Env {
-    #[knus(arguments)]
-    vars: Vec<String>,
+    #[knus(property)]
+    var: String,
     #[knus(type_name)]
     action: EnvActionType,
 }
 
 impl FunctionalCommand for Env {
-    fn run(&self) -> miette::Result<()> {
+    fn exec(
+        &self,
+        vars: Vars,
+        _execution_stuck: Rc<Mutex<ExecutionStuck>>,
+        _command_span: knus::span::LineSpan,
+    ) -> miette::Result<()> {
         match self.action {
             EnvActionType::Inject => {
-                for env in &self.vars {
-                    let env_split = env.split("=").collect::<Vec<&str>>();
+                let var_value = vars
+                    .lock()
+                    .unwrap()
+                    .iter()
+                    .find(|it| it.name == self.var.clone())
+                    .ok_or_else(|| miette::miette!("env var not found: {}", &self.var))?
+                    .value
+                    .clone();
 
-                    let (key, value) = (env_split.first(), env_split.get(1));
-
-                    if let (Some(key), Some(value)) = (key, value) {
-                        let mut value = value.to_string();
-                        utils::var::format_string_using_vars(&mut value, vars);
-
-                        unsafe { env::set_var(key, value) };
-                    } else {
-                        Err(EnvError::FialdToSetEnv { var: env.clone() })?
-                    }
+                unsafe {
+                    env::set_var(&self.var, var_value.to_string());
                 }
             }
-            EnvActionType::LoadFromFile => {
-                for file in &self.vars {
-                    let file_path = PathBuf::from(file);
-                    if !file_path.exists() {
-                        Err(EnvError::EnvFileNotExist { file: file_path })?
-                    }
+            EnvActionType::Load => {
+                let var_value = env::var(&self.var).into_diagnostic()?;
 
-                    let file_containt =
-                        String::from_utf8(fs::read(file).into_diagnostic()?).into_diagnostic()?; // FIXME: map the error for better
-
-                    for line in file_containt.lines() {
-                        let env_split = line.split("=").collect::<Vec<&str>>();
-
-                        let (key, value) = (env_split.first(), env_split.get(1));
-
-                        if let (Some(key), Some(value)) = (key, value) {
-                            let mut value = value.to_string();
-                            utils::var::format_string_using_vars(&mut value, vars);
-
-                            unsafe { env::set_var(key, value) };
-                        } else {
-                            Err(EnvError::FialdToSetEnv {
-                                var: line.to_string().clone(),
-                            })?
-                        }
-                    }
+                if let Some(var) = vars
+                    .lock()
+                    .unwrap()
+                    .iter_mut()
+                    .find(|it| it.name == self.var)
+                {
+                    var.value = VarValue::Str(var_value);
+                } else {
+                    vars.lock().unwrap().push(Var {
+                        name: self.var.clone(),
+                        value: VarValue::Str(var_value),
+                    });
                 }
             }
             EnvActionType::Drop => {
-                if self.vars.is_empty() {
+                if self.var.is_empty() {
                     for (var_name, _) in env::vars() {
                         if ENV_VARS_TO_IGNORE.contains(&var_name.as_str()) {
                             continue;
@@ -112,13 +91,7 @@ impl FunctionalCommand for Env {
                     return Ok(());
                 }
 
-                for var in &self.vars {
-                    if env::var(var).is_err() {
-                        Err(EnvError::EnvVarNotExists { var: var.clone() })?
-                    }
-
-                    unsafe { env::remove_var(var) };
-                }
+                unsafe { env::remove_var(&self.var) };
             }
         }
 

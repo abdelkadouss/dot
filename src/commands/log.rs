@@ -56,7 +56,7 @@ impl FunctionalCommand for Log {
             .as_nanos(); // FIXME: make this more readable
 
         let mut msg = self.msg.clone();
-        // utils::var::format_string_using_vars(&mut msg, vars); // TODO:
+        utils::var::format_string_using_vars(&mut msg, vars.lock().unwrap()); // TODO:
 
         println!(
             "{}",
