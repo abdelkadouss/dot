@@ -1,53 +1,55 @@
-// mod copy;
+mod copy;
 // mod env;
 // mod input;
-// mod log;
+mod log;
 // mod rm;
 // mod run;
 // mod if;
+mod fork;
+
+use std::{rc::Rc, sync::Mutex};
 
 use miette::Result;
-use std::sync::{Arc, Mutex};
 
-// use copy::Copy;
+use copy::Copy;
 // use env::Env;
 // use input::Input;
-// use log::Log;
+use log::Log;
 // use miette::Result;
 // use rm::Rm;
 // use run::Run;
 // use if::If;
+use fork::Fork;
 
-use crate::{execute::ExecutionStuck, var::Var};
+use crate::{execute::ExecutionStuck, var::Vars};
 
 #[derive(knus::Decode, Debug, Clone)]
 pub enum Command {
-    // Copy(Copy),
-    // Log(Log),
+    Copy(Copy),
+    Log(Log),
     // Env(Env),
     // Run(Run),
     // Input(Input),
     // Rm(Rm),
     // If(If),
+    Fork(Fork),
 }
 
-pub type Vars = Arc<Mutex<Vec<Var>>>;
-
 pub trait FunctionalCommand {
-    fn exec(&self, vars: Vars, execution_stuck: &mut ExecutionStuck) -> Result<()>;
+    fn exec(&self, vars: Vars, execution_stuck: Rc<Mutex<ExecutionStuck>>) -> Result<()>;
 }
 
 impl FunctionalCommand for Command {
-    fn exec(&self, vars: Vars, execution_stuck: &mut ExecutionStuck) -> Result<()> {
-        // match self {
-        //     Command::Env(it) => it.run(vars),
-        //     Command::Copy(it) => it.run(vars),
-        //     Command::Log(it) => it.run(vars),
-        //     Command::Run(it) => it.run(vars),
-        //     Command::Input(it) => it.run(vars),
-        //     Command::Rm(it) => it.run(vars),
-        //     Command::If(it) => it.run(vars),
-        // }
-        Ok(())
+    fn exec(&self, vars: Vars, execution_stuck: Rc<Mutex<ExecutionStuck>>) -> Result<()> {
+        match self {
+            //     Command::Env(it) => it.run(vars),
+            Command::Copy(it) => it.exec(vars, execution_stuck),
+            Command::Log(it) => it.exec(vars, execution_stuck),
+            //     Command::Run(it) => it.run(vars),
+            //     Command::Input(it) => it.run(vars),
+            //     Command::Rm(it) => it.run(vars),
+            //     Command::If(it) => it.run(vars),
+            Command::Fork(it) => it.exec(vars, execution_stuck),
+        }
     }
 }

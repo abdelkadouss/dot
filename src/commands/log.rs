@@ -1,12 +1,13 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
-use crate::{
-    commands::{FunctionalCommand, Var},
-    utils,
+use std::{
+    rc::Rc,
+    sync::Mutex,
+    time::{SystemTime, UNIX_EPOCH},
 };
+
+use crate::{commands::FunctionalCommand, execute::ExecutionStuck, utils, var::Vars};
 use owo_colors::{AnsiColors, OwoColorize};
 
-#[derive(knus::Decode, Debug)]
+#[derive(knus::Decode, Debug, Clone)]
 enum LogLevel {
     Error,
     Wron,
@@ -27,7 +28,7 @@ impl std::str::FromStr for LogLevel {
     }
 }
 
-#[derive(knus::Decode, Debug)]
+#[derive(knus::Decode, Debug, Clone)]
 pub struct Log {
     #[knus(argument)]
     msg: String,
@@ -36,7 +37,7 @@ pub struct Log {
 }
 
 impl FunctionalCommand for Log {
-    fn run(&self) -> miette::Result<()> {
+    fn exec(&self, vars: Vars, _execution_stuck: Rc<Mutex<ExecutionStuck>>) -> miette::Result<()> {
         let (signs, prefix, color) = match self.level {
             LogLevel::Error => ('🚨', "ERROR", AnsiColors::Red),
             LogLevel::Wron => ('🚧', "WRON", AnsiColors::Yellow),
@@ -50,7 +51,7 @@ impl FunctionalCommand for Log {
             .as_nanos(); // FIXME: make this more readable
 
         let mut msg = self.msg.clone();
-        utils::var::format_string_using_vars(&mut msg, vars);
+        // utils::var::format_string_using_vars(&mut msg, vars); // TODO:
 
         println!(
             "{}",
