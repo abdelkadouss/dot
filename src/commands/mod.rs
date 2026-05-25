@@ -1,8 +1,9 @@
 mod copy;
 mod env;
-// mod input;
 mod fork;
 mod if_condation;
+mod input;
+mod link;
 mod log;
 mod rm;
 mod run;
@@ -14,11 +15,11 @@ use miette::Result;
 
 use copy::Copy;
 use env::Env;
-// use input::Input;
-use log::Log;
-// use miette::Result;
 use fork::Fork;
 use if_condation::If;
+use input::Input;
+use link::Link;
+use log::Log;
 use rm::Rm;
 use run::Run;
 
@@ -31,7 +32,8 @@ pub enum Command {
     Env(Env),
     Run(Run),
     Var(var::Var),
-    // Input(Input),
+    Link(Link),
+    Input(Input),
     Rm(Rm),
     If(If),
     Fork(Fork),
@@ -59,8 +61,9 @@ impl FunctionalCommand for Command {
             Command::Log(it) => it.exec(vars, execution_stuck, command_span),
             Command::Run(it) => it.exec(vars, execution_stuck, command_span),
             Command::Var(it) => it.exec(vars, execution_stuck, command_span),
-            //     Command::Input(it) => it.run(vars),
+            Command::Input(it) => it.exec(vars, execution_stuck, command_span),
             Command::Rm(it) => it.exec(vars, execution_stuck, command_span),
+            Command::Link(it) => it.exec(vars, execution_stuck, command_span),
             Command::If(it) => it.exec(vars, execution_stuck, command_span),
             Command::Fork(it) => it.exec(vars, execution_stuck, command_span),
         }

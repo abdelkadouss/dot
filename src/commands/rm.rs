@@ -18,7 +18,11 @@ impl FunctionalCommand for Rm {
         _command_span: knus::span::LineSpan,
     ) -> miette::Result<()> {
         for path in &self.paths {
-            let file = utils::path::expand(path)?;
+            let mut file = path.clone();
+
+            utils::var::format_string_using_vars(&mut file, vars.lock().unwrap());
+
+            let file = utils::path::expand(&file)?;
 
             if !file.exists() {
                 Err(miette::miette!("file not found: {}", file.display()))?;

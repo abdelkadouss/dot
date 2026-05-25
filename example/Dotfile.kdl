@@ -26,3 +26,7 @@ rm "/tmp/shell.test"
 if var="hello" {
   (info)log "var hello is true"
 }
+
+(bool)input var="r-u-ok" prompt="are you ok?" default="true"
+
+(info)log "r u ok is ?r-u-ok"

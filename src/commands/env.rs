@@ -1,7 +1,5 @@
 use std::{env, rc::Rc, sync::Mutex};
 
-use miette::IntoDiagnostic;
-
 use crate::{
     commands::FunctionalCommand,
     execute::ExecutionStuck,
