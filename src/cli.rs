@@ -1,30 +1,10 @@
-use std::{sync::Arc, thread};
-
 use clap::{ColorChoice, Parser, Subcommand};
-use miette::{Diagnostic, Result, SourceSpan};
-use thiserror::Error;
+use miette::Result;
 
-use crate::{
-    commands::{FunctionalCommand, Vars},
-    config::Config,
-    parser::{OrgnizedBlock, Parser as DotParser, ThreadIndicator},
-    var::Var,
-};
+use crate::{config::Config, execute::Execute};
 
 const DEFAULT_SOURCE_DECLARATION_FILE_NAME: &str = "Dotfile.kdl";
 const DEFAULT_SCRIPTS_DIR: &str = "scripts";
-
-#[derive(Debug, Error, Diagnostic)]
-pub enum ExecutionError {
-    #[error("u already in the main thread - can't join")]
-    #[diagnostic(code(commands::run_time_error))]
-    AlreadyInMainThread {
-        #[source_code]
-        source_code: String,
-        #[label("This bit here")]
-        source_span: SourceSpan,
-    },
-}
 
 #[derive(Parser)]
 #[command(name = "dot")]
@@ -59,56 +39,6 @@ impl Cli {
                 .join(script_name),
         };
 
-        let parsed_script = DotParser::parse_and_order_commands(&to_run_script)?;
-
-        run_kdl_commands(parsed_script)
+        Execute::execute_script(to_run_script)
     }
-}
-
-fn run_kdl_commands(commands: Vec<OrgnizedBlock>) -> Result<()> {
-    // make the vars shared state
-    let vars = Vars::new(Vec::<Var>::new().into());
-
-    // make the threads handler
-    let mut threads_stuck = Vec::<thread::JoinHandle<Result<()>>>::new();
-
-    for ordered_commands_block in commands {
-        // get the block meta data
-        let block_thread_count = ordered_commands_block.thread_indicator;
-        let block_source_code = ordered_commands_block.source_code;
-        let block_gate_span = ordered_commands_block.gate_span;
-
-        let vars_clone = Arc::clone(&vars);
-        // TODO: u have to handle the return values of the threads insha'Allah
-        let execute_cluster = move || -> Result<()> {
-            for command in ordered_commands_block.commands {
-                command.exec(Arc::clone(&vars_clone))?
-            }
-
-            Ok(())
-        };
-
-        match block_thread_count {
-            ThreadIndicator::Main => {
-                execute_cluster()?;
-            }
-            ThreadIndicator::Push => {
-                threads_stuck.push(thread::spawn(execute_cluster));
-            }
-            ThreadIndicator::Join => {
-                if let Some(handle) = threads_stuck.pop() {
-                    handle.join().unwrap()?; // own it, join it, propagate the Result
-                } else {
-                    Err(ExecutionError::AlreadyInMainThread {
-                        source_code: block_source_code,
-                        source_span: block_gate_span,
-                    })?;
-                }
-
-                execute_cluster()?;
-            }
-        }
-    }
-
-    Ok(())
 }

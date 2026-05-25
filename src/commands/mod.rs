@@ -4,6 +4,7 @@
 // mod log;
 // mod rm;
 // mod run;
+// mod if;
 
 use miette::Result;
 use std::sync::{Arc, Mutex};
@@ -15,10 +16,11 @@ use std::sync::{Arc, Mutex};
 // use miette::Result;
 // use rm::Rm;
 // use run::Run;
+// use if::If;
 
-use crate::var::Var;
+use crate::{execute::ExecutionStuck, var::Var};
 
-#[derive(knus::Decode, Debug)]
+#[derive(knus::Decode, Debug, Clone)]
 pub enum Command {
     // Copy(Copy),
     // Log(Log),
@@ -26,16 +28,17 @@ pub enum Command {
     // Run(Run),
     // Input(Input),
     // Rm(Rm),
+    // If(If),
 }
 
 pub type Vars = Arc<Mutex<Vec<Var>>>;
 
 pub trait FunctionalCommand {
-    fn exec(&self, vars: Vars) -> Result<()>;
+    fn exec(&self, vars: Vars, execution_stuck: &mut ExecutionStuck) -> Result<()>;
 }
 
 impl FunctionalCommand for Command {
-    fn exec(&self, vars: Vars) -> Result<()> {
+    fn exec(&self, vars: Vars, execution_stuck: &mut ExecutionStuck) -> Result<()> {
         // match self {
         //     Command::Env(it) => it.run(vars),
         //     Command::Copy(it) => it.run(vars),
@@ -43,6 +46,7 @@ impl FunctionalCommand for Command {
         //     Command::Run(it) => it.run(vars),
         //     Command::Input(it) => it.run(vars),
         //     Command::Rm(it) => it.run(vars),
+        //     Command::If(it) => it.run(vars),
         // }
         Ok(())
     }
