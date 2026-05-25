@@ -9,9 +9,20 @@ fork {
 
 }
 
+(drop)env var="*"
 (load)env var="PATH"
+(load)env var="not-existing" if-exists=true
 (info)log "PATH is ?PATH"
 
 
 (info)log "hello world"
 (worn)log "this is a cool worn"
+
+run "touch /tmp/shell.test"
+rm "/tmp/shell.test"
+
+(bool)var name="hello" value="true"
+
+if var="hello" {
+  (info)log "var hello is true"
+}

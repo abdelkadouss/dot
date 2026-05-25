@@ -36,6 +36,10 @@ impl std::str::FromStr for EnvActionType {
 pub struct Env {
     #[knus(property)]
     var: String,
+    #[knus(property)]
+    into: Option<String>,
+    #[knus(property, default = false)]
+    if_exists: bool,
     #[knus(type_name)]
     action: EnvActionType,
 }
@@ -49,6 +53,10 @@ impl FunctionalCommand for Env {
     ) -> miette::Result<()> {
         match self.action {
             EnvActionType::Inject => {
+                if self.into.is_some() {
+                    return Err(miette::miette!("cant use into with inject"));
+                }
+
                 let var_value = vars
                     .lock()
                     .unwrap()
@@ -63,7 +71,16 @@ impl FunctionalCommand for Env {
                 }
             }
             EnvActionType::Load => {
-                let var_value = env::var(&self.var).into_diagnostic()?;
+                if env::var(&self.var).is_err() && !self.if_exists {
+                    return Err(miette::miette!(format!(
+                        "cant load var `{}` because it not found",
+                        &self.var
+                    )));
+                } else if env::var(&self.var).is_err() && self.if_exists {
+                    return Ok(());
+                }
+
+                let var_value = env::var(&self.var).unwrap();
 
                 if let Some(var) = vars
                     .lock()
@@ -74,13 +91,17 @@ impl FunctionalCommand for Env {
                     var.value = VarValue::Str(var_value);
                 } else {
                     vars.lock().unwrap().push(Var {
-                        name: self.var.clone(),
+                        name: self.into.clone().unwrap_or(self.var.clone()),
                         value: VarValue::Str(var_value),
                     });
                 }
             }
             EnvActionType::Drop => {
-                if self.var.is_empty() {
+                if self.into.is_some() {
+                    return Err(miette::miette!("cant use into with drop"));
+                }
+
+                if self.var == "*" {
                     for (var_name, _) in env::vars() {
                         if ENV_VARS_TO_IGNORE.contains(&var_name.as_str()) {
                             continue;
@@ -89,6 +110,13 @@ impl FunctionalCommand for Env {
                         unsafe { env::remove_var(var_name) };
                     }
                     return Ok(());
+                }
+
+                if env::var(&self.var).is_err() && !self.if_exists {
+                    return Err(miette::miette!(format!(
+                        "cant drop var `{}` because it not found",
+                        &self.var
+                    )));
                 }
 
                 unsafe { env::remove_var(&self.var) };

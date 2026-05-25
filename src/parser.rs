@@ -29,7 +29,7 @@ impl Parser {
             .nodes
             .iter()
             .map(|node| {
-                let span = node.span().clone();
+                let span = *node.span();
                 let command = knus::decode::node::<Command, knus::span::LineSpan>(node)
                     .map_err(|errs| miette::Report::new(errs.into_iter().next().unwrap()))?;
 

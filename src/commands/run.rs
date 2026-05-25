@@ -1,93 +1,62 @@
 use std::{
     env,
     process::{self, Stdio},
+    rc::Rc,
+    sync::Mutex,
 };
 
-use miette::{Diagnostic, IntoDiagnostic};
-use thiserror::Error;
+use miette::IntoDiagnostic;
 
-use crate::{
-    commands::{FunctionalCommand, Var},
-    utils,
-};
+use crate::{commands::FunctionalCommand, execute::ExecutionStuck, utils, var::Vars};
 
-#[derive(Debug, Diagnostic, Error)]
-pub enum RunError {
-    #[error("u just pass an empty string to the `run` command")]
-    #[diagnostic(code(commands::wrong_usege))]
-    EmptyCmd { cmd: String },
-
-    #[error("cmd the u pass are fiald. stderr: {stderr:#?}")]
-    #[diagnostic(code(commands::run_time_error))]
-    CmdFiald { stderr: String },
-}
-
-#[derive(Debug)]
-enum RunArgType {
-    Shell,
+#[derive(Debug, Clone)]
+enum RunRuntime {
+    /// the runtime should support the `-c` flag
     ViaRunTime(String),
 }
 
-impl std::str::FromStr for RunArgType {
+impl std::str::FromStr for RunRuntime {
     type Err = Box<dyn std::error::Error + Send + Sync + 'static>;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "shell" => Ok(RunArgType::Shell),
-            run_time => Ok(RunArgType::ViaRunTime(run_time.to_string())),
-        }
+        let run_time = s;
+        Ok(RunRuntime::ViaRunTime(run_time.to_string()))
     }
 }
 
-#[derive(knus::Decode, Debug)]
+#[derive(knus::Decode, Debug, Clone)]
 pub struct Run {
     #[knus(argument)]
     cmd: String,
     #[knus(type_name)]
-    arg_type: Option<RunArgType>,
+    runtime: Option<RunRuntime>,
 }
 
 impl FunctionalCommand for Run {
-    fn run(&self) -> miette::Result<()> {
-        env::set_current_dir(target).into_diagnostic()?;
+    fn exec(
+        &self,
+        vars: Vars,
+        _execution_stuck: Rc<Mutex<ExecutionStuck>>,
+        _command_span: knus::span::LineSpan,
+    ) -> miette::Result<()> {
+        let runtime = match &self.runtime {
+            Some(RunRuntime::ViaRunTime(run_time)) => run_time.clone(),
+            None => env::var("SHELL").map_err(|_| miette::miette!("SHELL env var not found"))?,
+        };
 
         let mut cmd = self.cmd.clone();
-        utils::var::format_string_using_vars(&mut cmd, vars);
+        utils::var::format_string_using_vars(&mut cmd, vars.lock().unwrap());
 
-        let cmd_vec = cmd.split(" ").collect::<Vec<&str>>();
-        match &self.arg_type {
-            Some(RunArgType::Shell) | None => {
-                let cmd_executable = cmd_vec.first();
-
-                if let Some(command) = cmd_executable {
-                    if !process::Command::new(command)
-                        .args(cmd_vec.get(1..).unwrap_or(vec![].as_slice()).iter())
-                        .stdout(Stdio::null())
-                        .spawn()
-                        .into_diagnostic()?
-                        .wait()
-                        .into_diagnostic()?
-                        .success()
-                    {
-                        Err(RunError::CmdFiald { stderr: todo!() })?;
-                    }
-                } else {
-                    Err(RunError::EmptyCmd { cmd })?;
-                };
-            }
-            Some(RunArgType::ViaRunTime(run_time)) => {
-                if !process::Command::new(run_time)
-                    .args(cmd_vec.iter())
-                    .stdout(Stdio::null())
-                    .spawn()
-                    .into_diagnostic()?
-                    .wait()
-                    .into_diagnostic()?
-                    .success()
-                {
-                    Err(RunError::CmdFiald { stderr: todo!() })?;
-                };
-            }
-        }
+        process::Command::new(&runtime)
+            .arg("-c")
+            .arg(&cmd)
+            .stdout(Stdio::null())
+            .spawn()
+            .map_err(|err| match err.kind() {
+                std::io::ErrorKind::NotFound => miette::miette!("runtime not found: {}", runtime),
+                _ => miette::miette!(err),
+            })?
+            .wait()
+            .into_diagnostic()?;
 
         Ok(())
     }
