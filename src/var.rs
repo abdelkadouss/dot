@@ -1,3 +1,7 @@
+use std::sync::{Arc, Mutex};
+
+pub type Vars = Arc<Mutex<Vec<Var>>>;
+
 #[derive(Debug)]
 pub struct Var {
     pub name: String,

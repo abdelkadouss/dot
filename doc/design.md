@@ -8,14 +8,13 @@
 
 ### Modules
 
-| Module        | Description                                    |
-| ---           | ---                                            |
-| git           | with with git, clone, commit, push, pull, etc. |
-| parser        | parse the kdl templates preparing them         |
-| formatter     | convert files from format a to format b        |
-| linker        | link (simlinks) files                          |
-| event         | detect events                                  |
-| script-engine | run scripts                                    |
+| Module        | state | Description                                    |
+| ---           | ---   | ---                                            |
+| git           | ⏰    | with with git, clone, commit, push, pull, etc. |
+| parser        | ✅    | parse the kdl templates preparing them         |
+| formatter     | 🏗️    | convert files from format a to format b        |
+| event         | ⏰    | detect events                                  |
+| script-engine | ✅    | run scripts                                    |
 
 ### Details
 

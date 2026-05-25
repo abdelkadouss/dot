@@ -1,0 +1,9 @@
+copy "/app/example/Dotfile.kdl" to="/tmp"
+
+fork {
+  (info)log "forked"
+  (error)log "forked"
+}
+
+(info)log "hello world"
+(worn)log "this is a cool worn"

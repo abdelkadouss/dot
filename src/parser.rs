@@ -19,12 +19,15 @@ impl Parser {
     }
 
     pub fn parse(&self) -> Result<ExecutionStuck> {
-        let kdl_commands =
+        let mut kdl_commands_stack =
             knus::parse::<Vec<Command>>(&self.source_path.to_string_lossy(), &self.source_code)
-                .into_diagnostic()?;
+                .map_err(miette::Report::new)?;
+
+        // a stack is a LIFO
+        kdl_commands_stack.reverse();
 
         Ok(ExecutionStuck {
-            commands: kdl_commands,
+            commands: kdl_commands_stack,
         })
     }
 }

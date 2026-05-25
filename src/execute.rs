@@ -1,12 +1,11 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, rc::Rc, sync::Mutex};
 
 use miette::Result;
 
 use crate::{
-    commands::Vars,
     commands::{Command, FunctionalCommand},
     parser::Parser,
-    var::Var,
+    var::{Var, Vars},
 };
 
 #[derive(Debug, Clone)]
@@ -23,12 +22,32 @@ impl Execute {
 
         let parser = Parser::new(&path_to_script)?;
 
-        let mut execution_stuck = parser.parse()?;
+        let execution_stuck = Rc::new(Mutex::new(parser.parse()?));
 
-        for command in execution_stuck.commands.clone() {
-            command.exec(vars.clone(), &mut execution_stuck)?;
+        loop {
+            let command = execution_stuck.lock().unwrap().commands.pop();
+
+            if let Some(cmd) = command {
+                cmd.exec(vars.clone(), Rc::clone(&execution_stuck))?
+            } else {
+                break;
+            }
         }
 
         Ok(())
+    }
+}
+
+impl ExecutionStuck {
+    /// make a new execution stuck
+    pub fn new(commands: Vec<Command>) -> Self {
+        Self { commands }
+    }
+
+    /// return an empty execution stuck
+    pub fn empty() -> Self {
+        Self {
+            commands: Vec::<Command>::new(),
+        }
     }
 }
