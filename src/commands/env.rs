@@ -6,7 +6,7 @@ use crate::{
     var::{Var, VarValue, Vars},
 };
 
-const ENV_VARS_TO_IGNORE: [&str; 4] = ["SHELL", "PWD", "TERM", "PATH"];
+const ENV_VARS_TO_IGNORE: [&str; 5] = ["SHELL", "PWD", "TERM", "PATH", "HOME"];
 
 #[derive(Debug, Clone)]
 pub enum EnvActionType {

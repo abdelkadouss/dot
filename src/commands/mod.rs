@@ -24,6 +24,7 @@ use link::Link;
 use log::Log;
 use rm::Rm;
 use run::Run;
+use var::Var;
 
 use crate::{execute::ExecutionStuck, var::Vars};
 
@@ -33,13 +34,13 @@ pub enum Command {
     Log(Log),
     Env(Env),
     Run(Run),
-    Var(var::Var),
     Link(Link),
     Input(Input),
     Rm(Rm),
     If(If),
     Fork(Fork),
     Call(Call),
+    Var(Var),
 }
 
 pub trait FunctionalCommand {
@@ -63,13 +64,13 @@ impl FunctionalCommand for Command {
             Command::Copy(it) => it.exec(vars, execution_stuck, command_span),
             Command::Log(it) => it.exec(vars, execution_stuck, command_span),
             Command::Run(it) => it.exec(vars, execution_stuck, command_span),
-            Command::Var(it) => it.exec(vars, execution_stuck, command_span),
             Command::Input(it) => it.exec(vars, execution_stuck, command_span),
             Command::Rm(it) => it.exec(vars, execution_stuck, command_span),
             Command::Link(it) => it.exec(vars, execution_stuck, command_span),
             Command::If(it) => it.exec(vars, execution_stuck, command_span),
             Command::Fork(it) => it.exec(vars, execution_stuck, command_span),
             Command::Call(it) => it.exec(vars, execution_stuck, command_span),
+            Command::Var(it) => it.exec(vars, execution_stuck, command_span),
         }
     }
 }

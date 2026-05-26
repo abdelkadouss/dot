@@ -1,8 +1,14 @@
 use std::{fs, path::PathBuf, rc::Rc, sync::Mutex};
 
 use miette::IntoDiagnostic;
+use path_absolutize::Absolutize;
 
-use crate::{commands::FunctionalCommand, execute, utils, var::Vars};
+use crate::{
+    commands::FunctionalCommand,
+    execute,
+    utils::{self, path::PathUtils},
+    var::Vars,
+};
 
 #[derive(knus::Decode, Debug, Clone)]
 pub struct Rm {
@@ -22,7 +28,11 @@ impl FunctionalCommand for Rm {
 
             utils::var::format_string_using_vars(&mut file, vars.lock().unwrap());
 
-            let file = PathBuf::from(&file).canonicalize().into_diagnostic()?;
+            let file = PathBuf::from(&file)
+                .home_expand()?
+                .absolutize()
+                .into_diagnostic()?
+                .to_path_buf();
 
             if !file.exists() {
                 Err(miette::miette!("file not found: {}", file.display()))?;

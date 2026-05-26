@@ -3,8 +3,8 @@ use miette::Result;
 
 use crate::{config::Config, execute::Execute};
 
-const DEFAULT_SOURCE_DECLARATION_FILE_NAME: &str = "Dotfile.kdl";
-const DEFAULT_SCRIPTS_DIR: &str = "scripts";
+pub const DEFAULT_SOURCE_DECLARATION_FILE_NAME: &str = "Dotfile.kdl";
+pub const DEFAULT_SCRIPTS_DIR: &str = "scripts";
 
 #[derive(Parser)]
 #[command(name = "dot")]

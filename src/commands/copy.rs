@@ -7,8 +7,11 @@ use std::{
 };
 
 use miette::{IntoDiagnostic, Result};
+use path_absolutize::Absolutize;
 
-use crate::{commands::FunctionalCommand, execute::ExecutionStuck, var::Vars};
+use crate::{
+    commands::FunctionalCommand, execute::ExecutionStuck, utils::path::PathUtils, var::Vars,
+};
 
 #[derive(knus::Decode, Debug, Clone)]
 pub struct Copy {
@@ -28,8 +31,16 @@ impl FunctionalCommand for Copy {
         _command_span: knus::span::LineSpan,
     ) -> miette::Result<()> {
         for path in &self.from {
-            let from = PathBuf::from(path).canonicalize().into_diagnostic()?;
-            let to = PathBuf::from(&self.to).canonicalize().into_diagnostic()?;
+            let from = PathBuf::from(path)
+                .home_expand()?
+                .absolutize()
+                .into_diagnostic()?
+                .to_path_buf();
+            let to = PathBuf::from(&self.to)
+                .home_expand()?
+                .absolutize()
+                .into_diagnostic()?
+                .to_path_buf();
 
             // if dir, copy set the target as dir/file_name
             let to = if to.is_dir() {

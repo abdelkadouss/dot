@@ -11,7 +11,7 @@ fork {
 
 (drop)env var="*"
 (load)env var="PATH"
-(load)env var="not-existing" if-exists=true
+// (load)env var="not-existing" if-exists=true
 (info)log "PATH is ?PATH"
 
 
@@ -21,12 +21,15 @@ fork {
 run "touch /tmp/shell.test"
 rm "/tmp/shell.test"
 
-(bool)var name="hello" value="true"
 
-if var="hello" {
-  (info)log "var hello is true"
-}
+// if var="hello" {
+//   (info)log "var hello is true"
+// }
+
+// (worn)log "hi is ?hi"
 
 (bool)input var="r-u-ok" prompt="are you ok?" default="true"
 
 (info)log "r u ok is ?r-u-ok"
+
+// call path="scripts/change-theme.kdl"

@@ -1,9 +1,12 @@
 use std::{env, path::PathBuf};
 
 use miette::{IntoDiagnostic, Result};
+use path_absolutize::Absolutize;
 
-const DEFAULT_SOURCE_DIR_ENV_VAR_NAME: &str = "DOT_SOURCE_DIR";
-const DEFAULT_SOURCE_DIR: &str = "~/.config/new";
+use crate::utils::path::PathUtils;
+
+pub const DEFAULT_SOURCE_DIR_ENV_VAR_NAME: &str = "DOT_SOURCE_DIR";
+pub const DEFAULT_SOURCE_DIR: &str = "~/.dotfiles";
 
 #[derive(Debug)]
 pub struct Config {
@@ -15,8 +18,10 @@ impl Config {
         let tamplates_dir = PathBuf::from(
             env::var(DEFAULT_SOURCE_DIR_ENV_VAR_NAME).unwrap_or(DEFAULT_SOURCE_DIR.to_string()),
         )
-        .canonicalize()
-        .into_diagnostic()?;
+        .home_expand()?
+        .absolutize()
+        .into_diagnostic()?
+        .to_path_buf();
 
         Ok(Config {
             source_dir: tamplates_dir,
