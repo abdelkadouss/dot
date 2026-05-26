@@ -13,7 +13,7 @@ pub struct Parser {
 impl Parser {
     pub fn new(script_path: &PathBuf) -> Result<Self> {
         Ok(Self {
-            source_path: script_path.to_path_buf(),
+            source_path: script_path.canonicalize().into_diagnostic()?.to_path_buf(),
             source_code: read_to_string(script_path).into_diagnostic()?,
         })
     }

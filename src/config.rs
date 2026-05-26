@@ -1,7 +1,4 @@
-use std::{
-    env,
-    path::{self, PathBuf},
-};
+use std::{env, path::PathBuf};
 
 use miette::{IntoDiagnostic, Result};
 
@@ -15,9 +12,10 @@ pub struct Config {
 
 impl Config {
     pub fn new() -> Result<Self> {
-        let tamplates_dir = path::absolute(PathBuf::from(
+        let tamplates_dir = PathBuf::from(
             env::var(DEFAULT_SOURCE_DIR_ENV_VAR_NAME).unwrap_or(DEFAULT_SOURCE_DIR.to_string()),
-        ))
+        )
+        .canonicalize()
         .into_diagnostic()?;
 
         Ok(Config {

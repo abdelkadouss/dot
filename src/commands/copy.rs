@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use std::{
     fs,
-    path::{self, Path},
+    path::{Path, PathBuf},
     rc::Rc,
     sync::Mutex,
 };
@@ -28,8 +28,8 @@ impl FunctionalCommand for Copy {
         _command_span: knus::span::LineSpan,
     ) -> miette::Result<()> {
         for path in &self.from {
-            let from = path::absolute(path).into_diagnostic()?;
-            let to = path::absolute(&self.to).into_diagnostic()?;
+            let from = PathBuf::from(path).canonicalize().into_diagnostic()?;
+            let to = PathBuf::from(&self.to).canonicalize().into_diagnostic()?;
 
             // if dir, copy set the target as dir/file_name
             let to = if to.is_dir() {

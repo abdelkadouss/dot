@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use std::{fs, path, rc::Rc, sync::Mutex};
+use std::{fs, path::PathBuf, rc::Rc, sync::Mutex};
 
 use miette::IntoDiagnostic;
 
@@ -21,8 +21,8 @@ impl FunctionalCommand for Link {
         _execution_stuck: Rc<Mutex<ExecutionStuck>>,
         _command_span: knus::span::LineSpan,
     ) -> miette::Result<()> {
-        let path = path::absolute(&self.path).into_diagnostic()?;
-        let to = path::absolute(&self.to).into_diagnostic()?;
+        let path = PathBuf::from(&self.path).canonicalize().into_diagnostic()?;
+        let to = PathBuf::from(&self.to).canonicalize().into_diagnostic()?;
 
         if !path.exists() {
             return Err(miette::miette!("file not found: {}", path.display()));

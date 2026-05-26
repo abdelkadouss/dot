@@ -1,6 +1,4 @@
-use std::{path, rc::Rc, sync::Mutex};
-
-use miette::IntoDiagnostic;
+use std::{path::PathBuf, rc::Rc, sync::Mutex};
 
 use crate::{
     execute::{self, ExecutionStuck},
@@ -25,9 +23,7 @@ impl crate::commands::FunctionalCommand for Call {
 
         utils::var::format_string_using_vars(&mut path, vars.lock().unwrap());
 
-        let path = path::absolute(&path).into_diagnostic()?;
-
-        execute::Execute::execute_script(path)?;
+        execute::Execute::execute_script(PathBuf::from(&path))?;
 
         Ok(())
     }
