@@ -1,4 +1,4 @@
-use std::{fs, rc::Rc, sync::Mutex};
+use std::{fs, path, rc::Rc, sync::Mutex};
 
 use miette::IntoDiagnostic;
 
@@ -22,7 +22,7 @@ impl FunctionalCommand for Rm {
 
             utils::var::format_string_using_vars(&mut file, vars.lock().unwrap());
 
-            let file = utils::path::expand(&file)?;
+            let file = path::absolute(&file).into_diagnostic()?;
 
             if !file.exists() {
                 Err(miette::miette!("file not found: {}", file.display()))?;

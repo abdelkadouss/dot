@@ -1,9 +1,9 @@
 #![allow(dead_code)]
-use std::{fs, rc::Rc, sync::Mutex};
+use std::{fs, path, rc::Rc, sync::Mutex};
 
 use miette::IntoDiagnostic;
 
-use crate::{commands::FunctionalCommand, execute::ExecutionStuck, utils, var::Vars};
+use crate::{commands::FunctionalCommand, execute::ExecutionStuck, var::Vars};
 
 #[derive(knus::Decode, Debug, Clone)]
 pub struct Link {
@@ -21,8 +21,8 @@ impl FunctionalCommand for Link {
         _execution_stuck: Rc<Mutex<ExecutionStuck>>,
         _command_span: knus::span::LineSpan,
     ) -> miette::Result<()> {
-        let path = utils::path::expand(&self.path)?;
-        let to = utils::path::expand(&self.to)?;
+        let path = path::absolute(&self.path).into_diagnostic()?;
+        let to = path::absolute(&self.to).into_diagnostic()?;
 
         if !path.exists() {
             return Err(miette::miette!("file not found: {}", path.display()));

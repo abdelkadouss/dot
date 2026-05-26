@@ -36,7 +36,8 @@ impl Cli {
             CliCommands::Script { script_name } => config
                 .source_dir
                 .join(DEFAULT_SCRIPTS_DIR)
-                .join(script_name),
+                .join(script_name)
+                .with_extension("kdl"),
         };
 
         Execute::execute_script(to_run_script)

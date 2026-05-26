@@ -1,0 +1,3 @@
+(info)log "change theme script called"
+
+call "../Dotfile.kdl"

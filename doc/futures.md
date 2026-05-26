@@ -18,6 +18,7 @@
 - [ ] location - declare a location with a name.
 - [ ] repeat - repeat a set of commands several times.
 - [ ] stop - stop the execution of the script
+- [ ] call - call a script
 
 ## Threads
 

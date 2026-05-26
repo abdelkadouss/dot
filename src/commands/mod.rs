@@ -1,3 +1,4 @@
+mod call;
 mod copy;
 mod env;
 mod fork;
@@ -13,6 +14,7 @@ use std::{rc::Rc, sync::Mutex};
 
 use miette::Result;
 
+use call::Call;
 use copy::Copy;
 use env::Env;
 use fork::Fork;
@@ -37,6 +39,7 @@ pub enum Command {
     Rm(Rm),
     If(If),
     Fork(Fork),
+    Call(Call),
 }
 
 pub trait FunctionalCommand {
@@ -66,6 +69,7 @@ impl FunctionalCommand for Command {
             Command::Link(it) => it.exec(vars, execution_stuck, command_span),
             Command::If(it) => it.exec(vars, execution_stuck, command_span),
             Command::Fork(it) => it.exec(vars, execution_stuck, command_span),
+            Command::Call(it) => it.exec(vars, execution_stuck, command_span),
         }
     }
 }
