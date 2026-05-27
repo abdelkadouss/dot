@@ -1,0 +1,8 @@
+(str)input var="DOT_THEME" prompt="theme name" default="catppuccin"
+
+// or u can name the var theme and then do this:
+// (str)var name="DOT_THEME" value="?theme"
+
+(inject)env var="DOT_THEME"
+
+(script)load path="../Dotfile.kdl"

@@ -1,3 +1,0 @@
-(info)log "change theme script called"
-
-call path="../Dotfile.kdl"

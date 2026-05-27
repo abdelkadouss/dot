@@ -1,0 +1,29 @@
+
+/// theme
+(load)env var="DOT_THEME" if-exists=true
+
+if var="DOT_THEME" not=true {
+  (info)log "DOT_THEME is not set"
+
+  (str)var name="DOT_THEME" value="catppuccin"
+}
+
+/// store the theme name in vars in deference cases
+(title)case var="DOT_THEME" to="theme_name_title_case"
+(camel)case var="DOT_THEME" to="theme_name_camel_case"
+
+/// load the theme values as vars in the scope
+(data)load path="./data/themes/?theme_name_camel_case.kdl"
+
+/// linking
+link path="./configs/pkg" to="~/.config/pkg"
+
+/// conver to yml
+(yml)convert path="./configs/glow.kdl" output="~/.config/glow/config.yml"
+
+/// convert to ghostty special config format
+// replace the placeholders with the vars values
+parse path="./configs/ghostty.kdl" output="/tmp/ghostty" // the theme name will passed insha'Allah
+// convert to ghostty config format
+map "keys.?a" "keys.?b" to="keybind = ?a=?b" output="~/ghostty/config"
+//   ^key      ^1st value

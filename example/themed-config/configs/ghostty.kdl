@@ -1,0 +1,12 @@
+// TODO: how to map this to the ghostty config file format?
+// IDEA: map "keys.?a" "keys.?b" to="keybind = ?a=?b" output="~/ghostty/config"
+keys {
+  "ctrl+shift+c" "new_split:right"
+  "ctrl+shift+v" "deactivate_key_table"
+  "ctrl+shift+f" "clear_screen"
+}
+
+theme "?theme_name_title_case"
+
+// background overwrite
+background "?Crust"

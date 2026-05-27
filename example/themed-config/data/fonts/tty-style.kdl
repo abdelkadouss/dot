@@ -1,0 +1,5 @@
+data {
+  main "Monaspace Krypton Var"
+  italic "IBM Plex Mono"
+  bold "Monaspace Xenon Var"
+}
